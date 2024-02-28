@@ -55,11 +55,25 @@ function createBalloon(user) {
   const timeDiff = new Date() - lastLogin;
   const minDiff = timeDiff / (1000 * 60); // minutes since last login
   const minutesInDay = 24 * 60;
-  // const heightModifier = 0; // TODO delete this and uncomment line below.
-  const heightModifier = minDiff > minutesInDay ? 1 : minDiff / minutesInDay; // lower the diff the nearer to zero. zero is max balloon height. if diff > 24 then floor balloon.
+
+  // Daily reminder that the origin (0,0) is top left corner. So height increases downward.
+  // Value heightModifier is what percentage of the day the user last logged in. Ex. logging in 3 hrs ago is 25% or 0.25
+  //   Zero is max balloon height. if diff > 24 then floor balloon.
+  const heightModifier = minDiff > minutesInDay ? 1 : minDiff / minutesInDay;
+
   // Remember Y=0 is top of the canvas. Y=height is bottom of the canvas.
   // Max scene height balloons should reach is 20% of canvas height. Min scene height is 60% of canvas height. So modify the diff like so: (60%-20%)*0.18295 + 20% = 27.3% of canvas height.
   const yDestination = (heightModifier * 0.45 + 0.15) * HEIGHT;
+
+  // Possible xDestination values is an inverted triangle. At the max scene height value (0.7 * canvas.height) the
+  //   possible values for xDestination should be (0.45 * canvas.width, 0.55 * canvas.width). At the lowest value of
+  //   height (0.15 * canvas.height) the range for xDestination should be (canvas.width * 0.15, canvas.width * 0.85)
+  // const xDestination = (WIDTH - BALLOON_FLOAT_RADIUS * 2) * Math.random() + BALLOON_FLOAT_RADIUS;
+  const xMax = 0.1 + 0.6 * (1 - heightModifier); // range (0,xMax) where xMax is as low as 0.1 and as high as high as 0.6
+  const xMidway = xMax / 2;
+  const xDestination = (xMax * Math.random() - xMidway) * WIDTH + WIDTH / 2;
+  console.log(xDestination)
+
   const randomColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
   return {
     id: user.id,
@@ -68,8 +82,7 @@ function createBalloon(user) {
     x: WIDTH / 2 + (30 * Math.random() - 15),
     y: HEIGHT * 0.65 + (50 * Math.random() - 25),
     yDirection: -1,
-    xDestination:
-      (WIDTH - BALLOON_FLOAT_RADIUS * 2) * Math.random() + BALLOON_FLOAT_RADIUS,
+    xDestination,
     yDestination,
     xLocalDestination: -1,
     yLocalDestination: -1,
@@ -197,12 +210,12 @@ document.addEventListener("DOMContentLoaded", () => {
   async function fetchDataIfNeeded() {
     const now = Date.now();
     if (now - lastFetchTime >= 10000) {
-      // Fetch every 10 seconds instead of every 300 frames
+      // Fetch every 10 seconds
       lastFetchTime = now;
       try {
         const res = await fetch("http://localhost:8080/users");
         const data = await res.json();
-        updateBalloons(balloons, data); // Assuming this updates the balloons array
+        updateBalloons(balloons, data);
         console.log(data);
       } catch (error) {
         console.error(error);
@@ -237,9 +250,9 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.fillText(balloon.text, balloon.x, balloon.y + 8); // TODO: the text is shaky because of this. I think it'd be better to create an image of text instead
 
     // For debugging balloon movement, uncomment the blow lines. They plot the balloons destination on the canvas.
-    // ctx.font = "18px Arial";
-    // ctx.fillStyle = "black";
-    // ctx.fillText("X", balloon.xDestination, balloon.yDestination);
+    ctx.font = "18px Arial";
+    ctx.fillStyle = "black";
+    ctx.fillText("X", balloon.xDestination, balloon.yDestination);
   }
 
   function drawBalloons(balloons, deltaTime) {
@@ -463,21 +476,6 @@ document.addEventListener("DOMContentLoaded", () => {
     drawFlower(WIDTH * 0.775, HEIGHT * 0.85, "#0011ff");
 
     drawVendor(WIDTH * 0.8, HEIGHT * 0.59);
-
-    // ------------------------------------------------------------------------
-    // FETCH DATA
-    // if (frameCounter === 300) {
-    //   try {
-    //     const res = await fetch("http://localhost:3000/users");
-    //     const data = await res.json();
-    //     console.log(data);
-    //   } catch (error) {
-    //     console.error(error);
-    //   }
-    //   frameCounter = 0;
-    // } else {
-    //   frameCounter += 1;
-    // }
 
     // ------------------------------------------------------------------------
     // DYNAMIC OBJECTS
