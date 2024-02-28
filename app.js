@@ -250,9 +250,9 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.fillText(balloon.text, balloon.x, balloon.y + 8); // TODO: the text is shaky because of this. I think it'd be better to create an image of text instead
 
     // For debugging balloon movement, uncomment the blow lines. They plot the balloons destination on the canvas.
-    ctx.font = "18px Arial";
-    ctx.fillStyle = "black";
-    ctx.fillText("X", balloon.xDestination, balloon.yDestination);
+    // ctx.font = "18px Arial";
+    // ctx.fillStyle = "black";
+    // ctx.fillText("X", balloon.xDestination, balloon.yDestination);
   }
 
   function drawBalloons(balloons, deltaTime) {
