@@ -425,10 +425,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // ------------------------------------------------------------------------
     // FETCH DATA
     // if (frameCounter === 300) {
-    //   let data = [];
     //   try {
     //     const res = await fetch("http://localhost:3000/users");
-    //     console.log(res)
+    //     const data = await res.json();
+    //     console.log(data);
     //   } catch (error) {
     //     console.error(error);
     //   }
