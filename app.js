@@ -18,7 +18,7 @@ const clouds = [
 // EXAMPLE DATA
 // User data
 // how we parse date `new Date("2019-01-01T00:00:00.000Z")`
-const userData = [
+const testUserData = [
   {
     id: "honestabe",
     initials: "AL",
@@ -49,8 +49,7 @@ const userData = [
   },
 ];
 
-// Balloon data example
-const balloons = userData.map((user) => {
+function createBalloon(user) {
   const lastLogin = new Date(user.lastLogin);
   const timeDiff = new Date() - lastLogin;
   const minDiff = timeDiff / (1000 * 60); // minutes since last login
@@ -62,6 +61,7 @@ const balloons = userData.map((user) => {
   const yDestination = (heightModifier * 0.45 + 0.15) * HEIGHT;
   const randomColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
   return {
+    id: user.id,
     text: user.initials,
     color: randomColor,
     x: WIDTH / 2 + (30 * Math.random() - 15),
@@ -75,7 +75,21 @@ const balloons = userData.map((user) => {
     stringSwayDirection: 1,
     stringSwayAmount: 0,
   };
-});
+}
+
+function updateBalloons(balloons, userData) {
+  userData.forEach((user) => {
+    const balloon = balloons.find((b) => b.id === user.id);
+    if (balloon) {
+      balloon.lastLogin = user.lastLogin;
+      return;
+    }
+
+    // If there isn't a balloon for the given user then create one.
+    const newBalloon = createBalloon(user);
+    balloons.push(newBalloon);
+  });
+}
 
 function isValidLocalDestination(balloon) {
   // Check if instantiated.
@@ -142,7 +156,7 @@ function calculateSpeedModifier(balloon) {
   if (distance > maxDistance) {
     return 1.0;
   } else {
-    return (1 - distance / maxDistance) * 1.5 + 1.0;
+    return (1 - distance / maxDistance) * 1.75 + 1.0;
   }
 }
 
@@ -163,6 +177,10 @@ function updateBalloonPosition(balloon) {
     (balloon.yLocalDestination - balloon.y) /
     (balloonMagnitude * speedModifier);
 }
+
+const balloons = [];
+// Uncomment this line for testing
+updateBalloons(balloons, testUserData);
 
 document.addEventListener("DOMContentLoaded", () => {
   const canvas = document.getElementById("canvas");
@@ -424,18 +442,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ------------------------------------------------------------------------
     // FETCH DATA
-    // if (frameCounter === 300) {
-    //   let data = [];
-    //   try {
-    //     const res = await fetch("http://localhost:3000/users");
-    //     console.log(res)
-    //   } catch (error) {
-    //     console.error(error);
-    //   }
-    //   frameCounter = 0;
-    // } else {
-    //   frameCounter += 1;
-    // }
+    if (frameCounter === 300) {
+      try {
+        const res = await fetch("http://localhost:8080/users");
+        const data = await res.json();
+        console.log(data);
+      } catch (error) {
+        console.error(error);
+      }
+      frameCounter = 0;
+    } else {
+      frameCounter += 1;
+    }
 
     // ------------------------------------------------------------------------
     // DYNAMIC OBJECTS

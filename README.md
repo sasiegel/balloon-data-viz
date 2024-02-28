@@ -1,2 +1,2 @@
-# Scenic Data Viz
+# Balloon Data Viz
 A fun, simple graphical visulization for viewing active users. The number of balloons in the environment are number of users. When a user logs in their balloon floats to the top. It slowly floats to the ground until they log in again.
