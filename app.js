@@ -142,7 +142,7 @@ function calculateSpeedModifier(balloon) {
   if (distance > maxDistance) {
     return 1.0;
   } else {
-    return (1 - distance / maxDistance) * 1.5 + 1.0;
+    return (1 - distance / maxDistance) * 1.75 + 1.0;
   }
 }
 
