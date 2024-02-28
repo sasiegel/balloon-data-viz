@@ -442,18 +442,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ------------------------------------------------------------------------
     // FETCH DATA
-    if (frameCounter === 300) {
-      try {
-        const res = await fetch("http://localhost:8080/users");
-        const data = await res.json();
-        console.log(data);
-      } catch (error) {
-        console.error(error);
-      }
-      frameCounter = 0;
-    } else {
-      frameCounter += 1;
-    }
+    // if (frameCounter === 300) {
+    //   try {
+    //     const res = await fetch("http://localhost:3000/users");
+    //     const data = await res.json();
+    //     console.log(data);
+    //   } catch (error) {
+    //     console.error(error);
+    //   }
+    //   frameCounter = 0;
+    // } else {
+    //   frameCounter += 1;
+    // }
 
     // ------------------------------------------------------------------------
     // DYNAMIC OBJECTS
