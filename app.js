@@ -3,15 +3,16 @@
 const WIDTH = window.innerWidth;
 const HEIGHT = WIDTH * (16 / 9);
 const BALLOON_RADIUS = 24;
-const STRING_SWAY_SPEED = 0.3;
+const STRING_SWAY_SPEED = 0.05;
 const STRING_LENGTH = 100;
 const STRING_MAX_SWAY = 15;
 const BALLOON_FLOAT_RADIUS = 70;
 
 // Starting cloud data
 const clouds = [
-  { x: WIDTH * 0.2, y: HEIGHT * 0.1, size: "large", speed: 0.3 },
-  { x: WIDTH * 0.8, y: HEIGHT * 0.2, size: "small", speed: 0.1 },
+  { x: WIDTH * 0.2, y: HEIGHT * 0.1, size: "large", speed: 0.05 },
+  { x: WIDTH * 0.8, y: HEIGHT * 0.2, size: "small", speed: 0.03 },
+  { x: -WIDTH * 0.1, y: HEIGHT * 0.17, size: "large", speed: 0.032 },
 ];
 
 // ------------------------------------------------------------------------
@@ -127,10 +128,10 @@ function updateLocalDestinations(balloon) {
     // Pick a point on the circle around the destination point.
     const randomRadian = Math.random() * Math.PI * 2;
     balloon.xLocalDestination = Math.floor(
-      balloon.x + BALLOON_FLOAT_RADIUS * Math.cos(randomRadian)
+      balloon.xDestination + BALLOON_FLOAT_RADIUS * Math.cos(randomRadian)
     );
     balloon.yLocalDestination = Math.floor(
-      balloon.y + BALLOON_FLOAT_RADIUS * Math.sin(randomRadian)
+      balloon.yDestination + BALLOON_FLOAT_RADIUS * Math.sin(randomRadian)
     );
   } else {
     // angle = arctan2((yDest - y),(xDest - x))
@@ -152,15 +153,15 @@ function calculateSpeedModifier(balloon) {
     (balloon.xDestination - balloon.x) ** 2 +
       (balloon.yDestination - balloon.y) ** 2
   );
-  const maxDistance = 200;
-  if (distance > maxDistance) {
-    return 1.0;
+  const maxSpeedDistance = 200;
+  if (distance > maxSpeedDistance) {
+    return 25;
   } else {
-    return (1 - distance / maxDistance) * 1.75 + 1.0;
+    return (distance / maxSpeedDistance) * 20 + 5;
   }
 }
 
-function updateBalloonPosition(balloon) {
+function updateBalloonPosition(balloon, deltaTime) {
   if (!isValidLocalDestination(balloon)) {
     updateLocalDestinations(balloon);
   }
@@ -169,18 +170,15 @@ function updateBalloonPosition(balloon) {
     (balloon.xLocalDestination - balloon.x) ** 2 +
       (balloon.yLocalDestination - balloon.y) ** 2
   );
+
   balloon.x +=
-    (balloon.xLocalDestination - balloon.x) /
-    (balloonMagnitude * speedModifier);
+    (speedModifier * (balloon.xLocalDestination - balloon.x) * deltaTime) /
+    balloonMagnitude;
 
   balloon.y +=
-    (balloon.yLocalDestination - balloon.y) /
-    (balloonMagnitude * speedModifier);
+    (speedModifier * (balloon.yLocalDestination - balloon.y) * deltaTime) /
+    balloonMagnitude;
 }
-
-const balloons = [];
-// Uncomment this line for testing
-updateBalloons(balloons, testUserData);
 
 document.addEventListener("DOMContentLoaded", () => {
   const canvas = document.getElementById("canvas");
@@ -190,7 +188,27 @@ document.addEventListener("DOMContentLoaded", () => {
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
 
-  let frameCounter = 0;
+  const balloons = [];
+  // Uncomment this line for testing
+  updateBalloons(balloons, testUserData);
+  let lastFetchTime = Date.now();
+  let lastFrameTime = Date.now();
+
+  async function fetchDataIfNeeded() {
+    const now = Date.now();
+    if (now - lastFetchTime >= 10000) {
+      // Fetch every 10 seconds instead of every 300 frames
+      lastFetchTime = now;
+      try {
+        const res = await fetch("http://localhost:8080/users");
+        const data = await res.json();
+        updateBalloons(balloons, data); // Assuming this updates the balloons array
+        console.log(data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  }
 
   function drawBalloon(balloon) {
     ctx.fillStyle = balloon.color;
@@ -224,9 +242,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // ctx.fillText("X", balloon.xDestination, balloon.yDestination);
   }
 
-  function drawBalloons(balloons) {
+  function drawBalloons(balloons, deltaTime) {
     balloons.forEach((balloon) => {
-      updateBalloonPosition(balloon);
+      updateBalloonPosition(balloon, deltaTime);
 
       // Draw and animate balloon and string
       drawBalloon(balloon);
@@ -261,17 +279,18 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.fill();
   }
 
-  function drawClouds(clouds) {
-    // If less than 5 clouds then 2% chance to create a cloud off screen to the left.
-    if (clouds.length < 5 && Math.random() > 0.98) {
-      const cloudHeightVariance = 0.2 * Math.random() - 0.1;
-      const size = Math.random() > 0.6 ? "large" : "small"; // 40% chance to create a large cloud
-      let speed = 0.25 * Math.random();
-      if (size === "large") {
-        speed += 0.1;
-      }
+  function drawClouds(clouds, deltaTime) {
+    // If less than 6 clouds then 0.01% chance to create a cloud off screen to the left per frame.
+    if (
+      clouds.length < 6 &&
+      Math.random() > 0.99 &&
+      !clouds.some((c) => c.x < 0)
+    ) {
+      const cloudHeightVariance = 0.15 * Math.random() - 0.1;
+      const size = Math.random() > 0.5 ? "large" : "small"; // 40% chance to create a large cloud
+      const speed = (1 + 7 * Math.random()) * deltaTime;
       clouds.push({
-        x: -200,
+        x: -125,
         y: HEIGHT * (0.12 + cloudHeightVariance),
         size,
         speed,
@@ -413,6 +432,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function draw() {
+    // Delta Time
+    const now = Date.now();
+    const deltaTime = (now - lastFrameTime) / 1000; // Delta time in seconds
+    lastFrameTime = now;
+
     // Clear the canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -458,12 +482,20 @@ document.addEventListener("DOMContentLoaded", () => {
     // ------------------------------------------------------------------------
     // DYNAMIC OBJECTS
     // Moving clouds
-    drawClouds(clouds);
+    drawClouds(clouds, deltaTime);
 
     // Update and draw balloons
-    drawBalloons(balloons);
+    drawBalloons(balloons, deltaTime);
+
+    requestAnimationFrame(draw);
   }
 
-  // Animation loop at 30 FPS
-  setInterval(draw, 1000 / 30);
+  // Start the animation loop
+  requestAnimationFrame(draw);
+
+  // Start fetching data asynchronously, decoupled from rendering loop
+  (async function fetchLoop() {
+    await fetchDataIfNeeded();
+    setTimeout(fetchLoop, 10000); // Check and fetch new data every 10 seconds
+  })();
 });
