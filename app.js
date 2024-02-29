@@ -2,11 +2,12 @@
 // STARTING DATA
 const WIDTH = window.innerWidth;
 const HEIGHT = WIDTH * (16 / 9);
-const BALLOON_RADIUS = 24;
+const BALLOON_RADIUS = 20;
 const STRING_SWAY_SPEED = 0.05;
-const STRING_LENGTH = 100;
-const STRING_MAX_SWAY = 15;
+const STRING_LENGTH = BALLOON_RADIUS * 3.5;
+const STRING_MAX_SWAY = 12;
 const BALLOON_FLOAT_RADIUS = 70;
+const FETCH_TIME = 5000; // in ms
 
 // Starting cloud data
 const clouds = [
@@ -72,7 +73,7 @@ function createBalloon(user) {
   const xMax = 0.1 + 0.6 * (1 - heightModifier); // range (0,xMax) where xMax is as low as 0.1 and as high as high as 0.6
   const xMidway = xMax / 2;
   const xDestination = (xMax * Math.random() - xMidway) * WIDTH + WIDTH / 2;
-  console.log(xDestination)
+  console.log(xDestination);
 
   const randomColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
   return {
@@ -88,6 +89,7 @@ function createBalloon(user) {
     yLocalDestination: -1,
     stringSwayDirection: 1,
     stringSwayAmount: 0,
+    rank: user.rank,
   };
 }
 
@@ -203,14 +205,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const balloons = [];
   // Uncomment this line for testing
-  updateBalloons(balloons, testUserData);
+  // updateBalloons(balloons, testUserData);
+  async () => await fetchDataIfNeeded();
   let lastFetchTime = Date.now();
   let lastFrameTime = Date.now();
 
   async function fetchDataIfNeeded() {
     const now = Date.now();
-    if (now - lastFetchTime >= 10000) {
-      // Fetch every 10 seconds
+    if (now - lastFetchTime >= FETCH_TIME) {
       lastFetchTime = now;
       try {
         const res = await fetch("http://localhost:8080/users");
@@ -242,12 +244,13 @@ document.addEventListener("DOMContentLoaded", () => {
       balloon.x + stringTailOffset,
       balloon.y + BALLOON_RADIUS + STRING_LENGTH
     );
+    ctx.strokeStyle = "#474747";
     ctx.stroke();
 
-    ctx.font = "18px Arial"; // Set font size and family
+    ctx.font = "15px Arial"; // Set font size and family
     ctx.fillStyle = "white"; // Text color
     ctx.textAlign = "center"; // Center the text horizontally
-    ctx.fillText(balloon.text, balloon.x, balloon.y + 8); // TODO: the text is shaky because of this. I think it'd be better to create an image of text instead
+    ctx.fillText(balloon.text, balloon.x, balloon.y + 6); // TODO: the text is shaky because of this. I think it'd be better to create an image of text instead
 
     // For debugging balloon movement, uncomment the blow lines. They plot the balloons destination on the canvas.
     // ctx.font = "18px Arial";
@@ -260,7 +263,11 @@ document.addEventListener("DOMContentLoaded", () => {
       updateBalloonPosition(balloon, deltaTime);
 
       // Draw and animate balloon and string
-      drawBalloon(balloon);
+      if (balloon.rank === 1) {
+        drawHotAirBalloon(balloon);
+      } else {
+        drawBalloon(balloon);
+      }
       if (
         balloon.stringSwayAmount > STRING_MAX_SWAY ||
         balloon.stringSwayAmount < -STRING_MAX_SWAY
@@ -390,7 +397,7 @@ document.addEventListener("DOMContentLoaded", () => {
       { cx: x + 80, cy: y - roofHeight - 20, r: 12, color: "yellow" },
     ];
 
-    balloons.forEach(function (balloon) {
+    balloons.forEach((balloon) => {
       ctx.fillStyle = balloon.color;
       ctx.beginPath();
       ctx.arc(balloon.cx, balloon.cy, balloon.r, 0, 2 * Math.PI);
@@ -444,6 +451,69 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.fill();
   }
 
+  function drawHotAirBalloon(balloon) {
+    const radius = 60;
+
+    ctx.fillStyle = "green";
+    ctx.fillRect(balloon.x - 10, balloon.y + radius + 10, 20, 15);
+
+    // triangle for downward conish shape
+    ctx.fillStyle = "green";
+    ctx.beginPath();
+    ctx.moveTo(
+      balloon.x + Math.cos((5 * Math.PI) / 6) * radius,
+      balloon.y + Math.sin((5 * Math.PI) / 6) * radius
+    );
+    ctx.lineTo(
+      balloon.x + Math.cos(Math.PI / 6) * radius,
+      balloon.y + Math.sin(Math.PI / 6) * radius
+    );
+    ctx.lineTo(balloon.x, balloon.y + radius + 25);
+    ctx.fill();
+
+    // circle for balloon shape
+    ctx.fillStyle = "orange";
+    ctx.beginPath();
+    ctx.arc(balloon.x, balloon.y, radius, 0, 2 * Math.PI);
+    ctx.fill();
+
+    ctx.fillStyle = "green";
+    ctx.beginPath();
+    ctx.ellipse(balloon.x, balloon.y, 45, radius, 0, 0, 2 * Math.PI);
+    ctx.fill();
+
+    ctx.fillStyle = "orange";
+    ctx.beginPath();
+    ctx.ellipse(balloon.x, balloon.y, 20, radius, 0, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // Draw strings
+    ctx.strokeStyle = "#474747";
+    ctx.beginPath();
+    ctx.moveTo(balloon.x - 9, balloon.y + radius + 25);
+    ctx.lineTo(balloon.x - 9, balloon.y + radius + 40);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(balloon.x, balloon.y + radius + 25);
+    ctx.lineTo(balloon.x, balloon.y + radius + 40);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(balloon.x + 9, balloon.y + radius + 25);
+    ctx.lineTo(balloon.x + 9, balloon.y + radius + 40);
+    ctx.stroke();
+
+    ctx.fillStyle = "#6b241c";
+    ctx.fillRect(balloon.x - 12, balloon.y + radius + 40, 24, 15);
+
+    // Draw name
+    ctx.strokeStyle = "black";
+    ctx.font = "48px Arial";
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.fillText(balloon.text, balloon.x, balloon.y + 16); // TODO: the text is shaky because of this. I think it'd be better to create an image of text instead
+    ctx.strokeText(balloon.text, balloon.x, balloon.y + 16);
+  }
+
   async function draw() {
     // Delta Time
     const now = Date.now();
@@ -494,6 +564,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // Start fetching data asynchronously, decoupled from rendering loop
   (async function fetchLoop() {
     await fetchDataIfNeeded();
-    setTimeout(fetchLoop, 10000); // Check and fetch new data every 10 seconds
+    setTimeout(fetchLoop, FETCH_TIME); // Check and fetch new data every 10 seconds
   })();
 });
