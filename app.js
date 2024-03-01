@@ -51,8 +51,8 @@ const testUserData = [
   },
 ];
 
-function createBalloon(user) {
-  const lastLogin = new Date(user.lastLogin);
+function updateDestination(userLastLogin) {
+  const lastLogin = new Date(userLastLogin);
   const timeDiff = new Date() - lastLogin;
   const minDiff = timeDiff / (1000 * 60); // minutes since last login
   const minutesInDay = 24 * 60;
@@ -73,8 +73,11 @@ function createBalloon(user) {
   const xMax = 0.1 + 0.6 * (1 - heightModifier); // range (0,xMax) where xMax is as low as 0.1 and as high as high as 0.6
   const xMidway = xMax / 2;
   const xDestination = (xMax * Math.random() - xMidway) * WIDTH + WIDTH / 2;
-  console.log(xDestination);
+  return { xDestination, yDestination };
+}
 
+function createBalloon(user) {
+  const { xDestination, yDestination } = updateDestination(user.lastLogin);
   const randomColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
   return {
     id: user.id,
@@ -97,7 +100,12 @@ function updateBalloons(balloons, userData) {
   userData.forEach((user) => {
     const balloon = balloons.find((b) => b.id === user.id);
     if (balloon) {
+      const { xDestination, yDestination } = updateDestination(user.lastLogin);
       balloon.lastLogin = user.lastLogin;
+      balloon.rank = user.rank;
+      // TODO: only update these if they change.
+      balloon.xDestination = xDestination;
+      balloon.yDestination = yDestination;
       return;
     }
 
@@ -207,7 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Uncomment this line for testing
   // updateBalloons(balloons, testUserData);
   async () => await fetchDataIfNeeded();
-  let lastFetchTime = Date.now();
+  let lastFetchTime = new Date("2024-01-01");
   let lastFrameTime = Date.now();
 
   async function fetchDataIfNeeded() {
@@ -217,8 +225,8 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const res = await fetch("http://localhost:8080/users");
         const data = await res.json();
+        // TODO: validate data
         updateBalloons(balloons, data);
-        console.log(data);
       } catch (error) {
         console.error(error);
       }
