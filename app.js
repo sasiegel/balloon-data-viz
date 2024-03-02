@@ -103,6 +103,10 @@ function updateBalloons(balloons, userData) {
       const { xDestination, yDestination } = updateDestination(user.lastLogin);
       balloon.lastLogin = user.lastLogin;
       balloon.rank = user.rank;
+      if (!balloon.color) {
+        // TODO: make this uniform with the color assignment in createBalloon
+        balloon.color = "#" + Math.floor(Math.random() * 16777215).toString(16);
+      }
       // TODO: only update these if they change.
       balloon.xDestination = xDestination;
       balloon.yDestination = yDestination;
